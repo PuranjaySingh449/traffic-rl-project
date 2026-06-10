@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<routes>
+
+    <!-- Vehicle Types -->
+    <vType id="car" accel="2.6" decel="4.5" length="5" maxSpeed="25" sigma="0.5"/>
+    <vType id="emergency" accel="3.0" decel="6.0" length="5" maxSpeed="30" sigma="0.5" priority="10"/>
+
+    <!-- Routes -->
+    <route id="ns" edges="n_in s_out"/>
+    <route id="sn" edges="s_in n_out"/>
+    <route id="ew" edges="e_in w_out"/>
+    <route id="we" edges="w_in e_out"/>
+
+    <!-- Normal Traffic -->
+    <flow id="ns_flow" route="ns" begin="0" end="3600"
+          probability="0.10" type="car"/>
+
+    <flow id="sn_flow" route="sn" begin="0" end="3600"
+          probability="0.10" type="car"/>
+
+    <flow id="ew_flow" route="ew" begin="0" end="3600"
+          probability="0.10" type="car"/>
+
+    <flow id="we_flow" route="we" begin="0" end="3600"
+          probability="0.10" type="car"/>
+
+    <!-- Emergency vehicles -->
+    <flow id="emergency_flow"
+          route="ew"
+          begin="0"
+          end="3600"
+          probability="0.005"
+          type="emergency"/>
+
+</routes>

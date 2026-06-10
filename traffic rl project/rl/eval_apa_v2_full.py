@@ -1,0 +1,149 @@
+import os
+import csv
+import random
+import numpy as np
+import torch
+import matplotlib.pyplot as plt
+
+from rl.evaluate_apa_dqn_v2 import evaluate_apa_dqn_v2_once
+
+# =========================
+# CONFIG
+# =========================
+MODEL_NAME = "apa_dqn_v2"
+SAVE_DIR = f"eval_results/{MODEL_NAME}"
+os.makedirs(SAVE_DIR, exist_ok=True)
+
+RESULT_CSV = os.path.join(SAVE_DIR, "results.csv")
+ROBUST_CSV = os.path.join(SAVE_DIR, "robustness.csv")
+SENS_CSV = os.path.join(SAVE_DIR, "sensitivity.csv")
+
+SCENARIOS = [
+    "baseline",
+    "low_demand",
+    "high_demand",
+    "emergency_stress",
+    "unseen"
+]
+
+SCENARIO_SEEDS = {
+    "baseline": [1, 2, 3],
+    "low_demand": [4, 5, 6],
+    "high_demand": [7, 8, 9],
+    "emergency_stress": [10, 11, 12],
+    "unseen": [13, 14, 15],
+}
+
+# =========================
+# SEED
+# =========================
+def set_seed(seed):
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed_all(seed)
+
+# =========================
+# MAIN EVALUATION
+# =========================
+ALL_RESULTS = {}
+
+for scenario in SCENARIOS:
+
+    em_vals, no_vals, qu_vals = [], [], []
+
+    for seed in SCENARIO_SEEDS[scenario]:
+        set_seed(seed)
+        out = evaluate_apa_dqn_v2_once(seed, scenario)
+
+        em_vals.append(out["emergency"])
+        no_vals.append(out["normal"])
+        qu_vals.append(out["queue"])
+
+    ALL_RESULTS[scenario] = {
+        "emergency": (np.mean(em_vals), np.std(em_vals)),
+        "normal": (np.mean(no_vals), np.std(no_vals)),
+        "queue": (np.mean(qu_vals), np.std(qu_vals)),
+    }
+
+# =========================
+# SAVE RESULTS
+# =========================
+rows = []
+for s, d in ALL_RESULTS.items():
+    rows.append([s, d["emergency"][0], d["normal"][0], d["queue"][0]])
+
+with open(RESULT_CSV, "w", newline="") as f:
+    writer = csv.writer(f)
+    writer.writerow(["Scenario", "Emergency", "Normal", "Queue"])
+    writer.writerows(rows)
+
+print("Saved:", RESULT_CSV)
+
+# =========================
+# ROBUSTNESS
+# =========================
+def degradation(base, pert):
+    return 0 if base == 0 else ((pert - base) / base) * 100
+
+robust_rows = []
+
+for scenario in SCENARIOS:
+
+    base_vals, pert_vals = [], []
+
+    for seed in SCENARIO_SEEDS[scenario]:
+        b = evaluate_apa_dqn_v2_once(seed, scenario)
+        p = evaluate_apa_dqn_v2_once(seed + 100, scenario)
+
+        base_vals.append(b["emergency"])
+        pert_vals.append(p["emergency"])
+
+    b_m, p_m = np.mean(base_vals), np.mean(pert_vals)
+    robust_rows.append([scenario, b_m, p_m, degradation(b_m, p_m)])
+
+with open(ROBUST_CSV, "w", newline="") as f:
+    csv.writer(f).writerows(robust_rows)
+
+print("Saved:", ROBUST_CSV)
+
+# =========================
+# SENSITIVITY
+# =========================
+sens_rows = []
+
+for scenario in ["emergency_low", "emergency_medium", "emergency_high"]:
+
+    vals = []
+
+    for seed in [1, 2, 3]:
+        out = evaluate_apa_dqn_v2_once(seed, scenario)
+        vals.append(out["emergency"])
+
+    sens_rows.append([scenario, np.mean(vals)])
+
+with open(SENS_CSV, "w", newline="") as f:
+    csv.writer(f).writerows(sens_rows)
+
+print("Saved:", SENS_CSV)
+
+# =========================
+# PLOTS
+# =========================
+for metric in ["emergency", "normal", "queue"]:
+
+    means = [ALL_RESULTS[s][metric][0] for s in SCENARIOS]
+
+    plt.figure()
+    plt.bar(SCENARIOS, means)
+    plt.xticks(rotation=20)
+    plt.title(f"{MODEL_NAME} {metric}")
+
+    path = os.path.join(SAVE_DIR, f"{metric}.png")
+    plt.savefig(path)
+    plt.close()
+
+    print("Saved:", path)
+
+print("\n✅ APA-DQN-V2 FULL evaluation complete")

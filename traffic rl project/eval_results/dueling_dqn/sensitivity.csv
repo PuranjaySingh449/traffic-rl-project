@@ -1,0 +1,4 @@
+Scenario,EmergencyDelay
+emergency_low,10.666666666666666
+emergency_medium,44.0
+emergency_high,123.33333333333333

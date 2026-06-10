@@ -1,0 +1,21 @@
+<routes>
+
+<vType id="car" accel="2.6" decel="4.5" sigma="0.5" length="5" maxSpeed="13.9"/>
+<vType id="emergency" accel="3.5" decel="5.0" sigma="0.3" length="5" maxSpeed="20" color="1,0,0"/>
+
+<route id="north_south" edges="n_in n_out"/>
+<route id="south_north" edges="s_in s_out"/>
+<route id="east_west" edges="e_in e_out"/>
+<route id="west_east" edges="w_in w_out"/>
+
+<!-- normal traffic -->
+<flow id="ns_flow" type="car" route="north_south" begin="0" end="3600" vehsPerHour="600"/>
+<flow id="sn_flow" type="car" route="south_north" begin="0" end="3600" vehsPerHour="600"/>
+<flow id="ew_flow" type="car" route="east_west" begin="0" end="3600" vehsPerHour="600"/>
+<flow id="we_flow" type="car" route="west_east" begin="0" end="3600" vehsPerHour="600"/>
+
+<!-- emergency vehicles -->
+<flow id="em_ns" type="emergency" route="north_south" begin="0" end="3600" vehsPerHour="40"/>
+<flow id="em_sn" type="emergency" route="south_north" begin="0" end="3600" vehsPerHour="40"/>
+
+</routes>
